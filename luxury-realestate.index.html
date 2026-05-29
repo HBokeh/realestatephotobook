@@ -71,21 +71,15 @@ body {
 /* ══════════════════════════════════════════════════════
    BOOK SHELL
    ══════════════════════════════════════════════════════ */
-/* Shadow wrapper — NEVER put filter on a preserve-3d element */
-#book-wrap {
+#book {
   position:relative;
   width: 1300px; height: 820px;
-  border-radius: 4px 8px 8px 4px;
+  transform-style: preserve-3d;
+  /* box-shadow is SAFE with preserve-3d — only filter/opacity break 3D */
   box-shadow:
     0 50px 80px rgba(40,28,16,0.50),
     0 12px 28px rgba(40,28,16,0.28),
     0 2px  6px  rgba(40,28,16,0.18);
-}
-#book {
-  position:absolute;
-  inset:0;
-  transform-style: preserve-3d;
-  /* NO filter here — filters break preserve-3d in all browsers */
 }
 
 /* ══════════════════════════════════════════════════════
@@ -467,7 +461,6 @@ ul.cklist li::before { content:'○'; color:var(--gold); font-size:0.8rem; line-
 
 <!-- ══════════════════════ BOOK STAGE ══════════════════════ -->
 <div id="stage">
-  <div id="book-wrap">
   <div id="book">
 
     <!-- Background halves -->
@@ -990,7 +983,6 @@ ul.cklist li::before { content:'○'; color:var(--gold); font-size:0.8rem; line-
     </div>
 
   </div><!-- /book -->
-  </div><!-- /book-wrap -->
 </div><!-- /stage -->
 
 <!-- ══════════════════════ PROGRESS ══════════════════════ -->
