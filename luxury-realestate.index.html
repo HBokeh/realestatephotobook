@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Luxury Real Estate Photography — Interactive Flipbook</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,600&family=Jost:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════════
+   ROOT VARIABLES — matches eBook palette exactly
+   ══════════════════════════════════════════════════════ */
+:root {
+  --baby-blue:   #C8DDEF;  --sky-mist:  #E6F1F7;
+  --pale-pink:   #F2DCE3;  --blush:     #EDD0DA;
+  --rose-mist:   #F8EDF1;  --yellow-bg: #F5ECD4;
+  --cream:       #F9F4E8;  --warm-sand: #EDE3CB;
+  --sage:        #C8D8C0;  --pale-sage: #DDE9D8;
+  --sage-mist:   #ECF3EA;  --lavender:  #D8D0EA;
+  --text-dark:   #3A3228;  --text-mid:  #5C5047;
+  --text-light:  #8C7E72;
+  --gold:        #B89A5E;  --blue:      #6A99B5;
+  --rose:        #B5728A;  --sage-g:    #6A9A62;
+  --page-bg:     #FAF7F2;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; overflow:hidden; }
+
+body {
+  font-family:'Jost',sans-serif;
+  background: radial-gradient(ellipse at 50% 30%, #E8E0D4 0%, #D4C8B8 60%, #C0B4A0 100%);
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  min-height:100vh;
+  user-select:none;
+}
+
+/* ══════════════════════════════════════════════════════
+   TOP BAR
+   ══════════════════════════════════════════════════════ */
+#topbar {
+  position:fixed; top:0; left:0; right:0; height:44px;
+  background:rgba(58,50,40,0.92);
+  backdrop-filter: blur(10px);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 24px; z-index:1000;
+}
+#topbar .tl { font-family:'Cormorant Garamond',serif; font-size:13px; font-weight:400; color:rgba(255,255,255,0.7); letter-spacing:0.08em; }
+#topbar .tr { display:flex; align-items:center; gap:16px; }
+.tb-btn {
+  font-family:'Jost',sans-serif; font-size:9px; font-weight:600;
+  letter-spacing:0.22em; text-transform:uppercase; color:rgba(255,255,255,0.55);
+  cursor:pointer; padding:5px 12px; border-radius:4px;
+  border:1px solid rgba(255,255,255,0.15);
+  transition: all 0.2s;
+}
+.tb-btn:hover { background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.9); }
+#pagecount { font-family:'Cormorant Garamond',serif; font-size:14px; color:rgba(255,255,255,0.6); letter-spacing:0.05em; }
+
+/* ══════════════════════════════════════════════════════
+   BOOK STAGE
+   ══════════════════════════════════════════════════════ */
+#stage {
+  perspective: 2200px;
+  perspective-origin: 50% 48%;
+  display:flex; align-items:center; justify-content:center;
+  width:100vw; height:100vh;
+  padding-top:44px;
+}
+
+/* ══════════════════════════════════════════════════════
+   BOOK SHELL
+   ══════════════════════════════════════════════════════ */
+/* Shadow wrapper — NEVER put filter on a preserve-3d element */
+#book-wrap {
+  position:relative;
+  width: 1300px; height: 820px;
+  border-radius: 4px 8px 8px 4px;
+  box-shadow:
+    0 50px 80px rgba(40,28,16,0.50),
+    0 12px 28px rgba(40,28,16,0.28),
+    0 2px  6px  rgba(40,28,16,0.18);
+}
+#book {
+  position:absolute;
+  inset:0;
+  transform-style: preserve-3d;
+  /* NO filter here — filters break preserve-3d in all browsers */
+}
+
+/* ══════════════════════════════════════════════════════
+   BOOK HALVES (background layer)
+   ══════════════════════════════════════════════════════ */
+.book-half {
+  position:absolute; top:0; height:100%; width:50%;
+  border-radius:0;
+}
+#left-half {
+  left:0;
+  background: linear-gradient(to right, #EAE4D8 0%, #F2EDE4 95%, #E0D8CC 100%);
+  border-radius:8px 0 0 8px;
+  box-shadow: inset -4px 0 8px rgba(0,0,0,0.08);
+}
+#right-half {
+  left:50%;
+  background: linear-gradient(to left, #EAE4D8 0%, #F2EDE4 95%, #E0D8CC 100%);
+  border-radius:0 8px 8px 0;
+}
+
+/* Centre spine shadow */
+#spine {
+  position:absolute; left:50%; top:0;
+  width:6px; height:100%;
+  transform:translateX(-50%);
+  background: linear-gradient(to right,
+    rgba(0,0,0,0.18) 0%,
+    rgba(0,0,0,0.06) 40%,
+    rgba(0,0,0,0.06) 60%,
+    rgba(0,0,0,0.18) 100%);
+  z-index:50;
+  pointer-events:none;
+}
+
+/* ══════════════════════════════════════════════════════
+   PAGES (leaves)
+   ══════════════════════════════════════════════════════ */
+.leaf {
+  position:absolute;
+  top:0; left:50%; width:50%; height:100%;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  transition: transform 0.75s cubic-bezier(0.645, 0.045, 0.355, 1.000);
+  z-index:10;
+  cursor:pointer;
+}
+.leaf.flipped {
+  transform: rotateY(-180deg);
+}
+.leaf-front, .leaf-back {
+  position:absolute;
+  top:0; left:0; width:100%; height:100%;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+  overflow:hidden;
+}
+.leaf-back {
+  transform: rotateY(180deg);
+  /* Back is the left page of the next spread */
+}
+
+/* Page turn shadow overlay */
+.leaf-front::after {
+  content:'';
+  position:absolute; inset:0;
+  background: linear-gradient(to left, rgba(0,0,0,0.12) 0%, transparent 30%);
+  pointer-events:none;
+}
+.leaf-back::after {
+  content:'';
+  position:absolute; inset:0;
+  background: linear-gradient(to right, rgba(0,0,0,0.12) 0%, transparent 30%);
+  pointer-events:none;
+}
+
+/* Shadow during flip */
+.leaf.flipping .leaf-front::after {
+  background: linear-gradient(to left, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.06) 50%, transparent 70%);
+}
+
+/* Static left page (shows before any flip) */
+#static-left {
+  position:absolute; top:0; left:0; width:50%; height:100%;
+  overflow:hidden;
+  border-radius:8px 0 0 8px;
+}
+
+/* ══════════════════════════════════════════════════════
+   NAVIGATION ARROWS
+   ══════════════════════════════════════════════════════ */
+.nav-arrow {
+  position:fixed; top:50%; transform:translateY(-50%);
+  width:48px; height:48px; border-radius:50%;
+  background:rgba(58,50,40,0.65); border:1px solid rgba(255,255,255,0.15);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; z-index:200;
+  transition: all 0.2s; backdrop-filter:blur(6px);
+}
+.nav-arrow:hover { background:rgba(58,50,40,0.9); transform:translateY(-50%) scale(1.08); }
+.nav-arrow.disabled { opacity:0.25; pointer-events:none; }
+#nav-prev { left:24px; }
+#nav-next { right:24px; }
+.nav-arrow svg { width:18px; height:18px; stroke:white; stroke-width:2; fill:none; }
+
+/* ══════════════════════════════════════════════════════
+   PROGRESS BAR
+   ══════════════════════════════════════════════════════ */
+#progress {
+  position:fixed; bottom:22px; left:50%; transform:translateX(-50%);
+  display:flex; align-items:center; gap:14px; z-index:200;
+}
+#progress-bar {
+  width:180px; height:3px; background:rgba(255,255,255,0.2); border-radius:2px; overflow:hidden;
+}
+#progress-fill {
+  height:100%; background:var(--gold); border-radius:2px;
+  transition: width 0.5s ease;
+}
+#progress-label {
+  font-family:'Jost',sans-serif; font-size:9px; font-weight:500;
+  letter-spacing:0.2em; text-transform:uppercase; color:rgba(255,255,255,0.5);
+  white-space:nowrap;
+}
+
+/* ══════════════════════════════════════════════════════
+   TOC SIDEBAR
+   ══════════════════════════════════════════════════════ */
+#toc-overlay {
+  position:fixed; inset:0; z-index:500;
+  background:rgba(40,30,20,0.6); backdrop-filter:blur(6px);
+  display:none; align-items:center; justify-content:center;
+}
+#toc-overlay.open { display:flex; }
+#toc-panel {
+  background:var(--page-bg); border-radius:16px; width:560px; max-height:80vh;
+  overflow-y:auto; padding:2.5rem; position:relative;
+  box-shadow:0 40px 80px rgba(0,0,0,0.35);
+}
+#toc-close {
+  position:absolute; top:16px; right:16px; width:32px; height:32px; border-radius:50%;
+  background:var(--warm-sand); border:none; cursor:pointer; font-size:14px; color:var(--text-mid);
+  display:flex; align-items:center; justify-content:center;
+}
+.toc-head { font-family:'Cormorant Garamond',serif; font-size:1.6rem; font-weight:300; color:var(--text-dark); margin-bottom:1.5rem; }
+.toc-item-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0.55rem 0.7rem; border-radius:6px; cursor:pointer;
+  transition:background 0.15s; margin-bottom:3px;
+}
+.toc-item-row:hover { background:var(--sky-mist); }
+.toc-item-row .ti-num { font-size:0.6rem; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:var(--gold); min-width:60px; }
+.toc-item-row .ti-title { font-family:'Cormorant Garamond',serif; font-size:1rem; font-weight:400; color:var(--text-dark); flex:1; }
+.toc-item-row .ti-pg { font-size:0.7rem; color:var(--text-light); }
+.toc-sep { height:1px; background:var(--warm-sand); margin:0.6rem 0; }
+
+/* ══════════════════════════════════════════════════════
+   PAGE CONTENT STYLES (shared across all pages)
+   ══════════════════════════════════════════════════════ */
+.pg {
+  width:100%; height:100%;
+  font-family:'Jost',sans-serif;
+  background: var(--page-bg);
+  overflow:hidden;
+  position:relative;
+}
+
+/* Cover special */
+.pg-cover {
+  background: linear-gradient(155deg, var(--baby-blue) 0%, var(--blush) 45%, var(--yellow-bg) 100%);
+  display:flex; flex-direction:column;
+  justify-content:space-between; padding:3.5rem 3rem 3rem;
+  position:relative; overflow:hidden;
+}
+.pg-cover::before { content:''; position:absolute; top:-60px; right:-60px; width:260px; height:260px; background:rgba(255,255,255,0.2); border-radius:50%; }
+.pg-cover::after  { content:''; position:absolute; bottom:-80px; left:-40px; width:200px; height:200px; background:rgba(255,255,255,0.15); border-radius:50%; }
+
+.cover-badge {
+  display:inline-block; background:rgba(255,255,255,0.55); border:1px solid rgba(255,255,255,0.8);
+  color:var(--text-mid); font-size:0.55rem; font-weight:700; letter-spacing:0.28em; text-transform:uppercase;
+  padding:0.35rem 1rem; border-radius:20px; margin-bottom:2rem; width:fit-content;
+}
+.cover-title { font-family:'Cormorant Garamond',serif; font-size:3.2rem; font-weight:300; color:var(--text-dark); line-height:1.05; position:relative; z-index:2; }
+.cover-title em { font-style:italic; color:var(--blue); }
+.cover-sub { font-size:0.72rem; font-weight:400; color:var(--text-mid); letter-spacing:0.08em; max-width:340px; margin-top:0.8rem; line-height:1.6; position:relative; z-index:2; }
+.cover-gold-line { width:48px; height:2px; background:var(--gold); border-radius:2px; margin:1.2rem 0; }
+.cover-imgph {
+  background:rgba(255,255,255,0.3); border:1.5px dashed rgba(180,160,140,0.45); border-radius:12px;
+  flex:1; min-height:180px; display:flex; align-items:center; justify-content:center;
+  margin:1.5rem 0; position:relative; z-index:2;
+}
+.cover-imgph-label { text-align:center; color:var(--text-light); }
+.cover-imgph-label p { font-size:0.65rem; letter-spacing:0.12em; text-transform:uppercase; margin-top:0.4rem; }
+.cover-footer { display:flex; justify-content:space-between; align-items:flex-end; position:relative; z-index:2; }
+.cover-edition { font-size:0.6rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--text-light); }
+
+/* Right cover (back of first leaf) */
+.pg-right-cover {
+  background: var(--text-dark);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:3rem; text-align:center;
+}
+.pg-right-cover h2 { font-family:'Cormorant Garamond',serif; font-size:1.8rem; font-weight:300; color:white; line-height:1.2; margin-bottom:1rem; }
+.pg-right-cover p  { font-size:0.75rem; font-weight:300; color:rgba(255,255,255,0.55); line-height:1.7; max-width:300px; }
+
+/* Standard content page */
+.pg-content { padding:2.8rem 2.5rem; overflow:hidden; }
+.pg-content.right-pg { padding-left:2.8rem; }
+
+/* Chapter header */
+.ch-header {
+  border-radius:12px; padding:2rem 2rem 1.6rem; margin-bottom:2rem; position:relative; overflow:hidden;
+}
+.ch-header::after {
+  content:attr(data-num); position:absolute; right:1.5rem; top:50%; transform:translateY(-50%);
+  font-family:'Cormorant Garamond',serif; font-size:6rem; font-weight:300;
+  color:rgba(255,255,255,0.5); line-height:1; pointer-events:none;
+}
+.ch-header.blue   { background:linear-gradient(120deg,#E6F1F7,#D8EAEF); }
+.ch-header.pink   { background:linear-gradient(120deg,#F8EDF1,#EDD0DA); }
+.ch-header.gold   { background:linear-gradient(120deg,#F9F4E8,#EDE3CB); }
+.ch-header.sage   { background:linear-gradient(120deg,#ECF3EA,#DDE9D8); }
+.ch-header.purple { background:linear-gradient(120deg,#EDE8F5,#D8D0EA); }
+.ch-lbl { font-size:0.55rem; font-weight:700; letter-spacing:0.28em; text-transform:uppercase; color:var(--rose); margin-bottom:0.4rem; display:flex; align-items:center; gap:8px; }
+.ch-lbl::after { content:''; flex:1; height:1px; background:var(--blush); }
+.ch-title { font-family:'Cormorant Garamond',serif; font-size:1.75rem; font-weight:400; color:var(--text-dark); line-height:1.2; }
+
+/* Section headings */
+.sec-h { font-family:'Cormorant Garamond',serif; font-size:1.1rem; font-weight:500; color:var(--text-dark); border-bottom:1px solid var(--warm-sand); padding-bottom:0.35rem; margin:1.4rem 0 0.7rem; }
+.sub-h { font-size:0.65rem; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--blue); margin:1rem 0 0.4rem; }
+
+p.body  { font-size:0.76rem; color:var(--text-mid); line-height:1.72; margin-bottom:0.7rem; }
+strong  { font-weight:600; color:var(--text-dark); }
+
+/* Callout boxes */
+.box { border-radius:8px; padding:0.9rem 1.1rem; margin:0.8rem 0; }
+.box.blue   { background:var(--sky-mist); border:1px solid var(--baby-blue); }
+.box.gold   { background:var(--cream); border:1px solid var(--warm-sand); }
+.box.pink   { background:var(--rose-mist); border:1px solid var(--blush); }
+.box.sage   { background:var(--sage-mist); border:1px solid var(--sage); }
+.box h5 { font-size:0.58rem; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; margin-bottom:0.4rem; }
+.box.blue h5 { color:var(--blue); }
+.box.gold h5 { color:var(--gold); }
+.box.pink h5 { color:var(--rose); }
+.box.sage h5 { color:var(--sage-g); }
+.box p  { font-size:0.72rem; color:var(--text-mid); line-height:1.6; margin:0; }
+
+/* Pro tip */
+.pro-tip { background:var(--pale-sage); border-radius:8px; padding:0.9rem 1rem; margin:0.9rem 0; display:flex; gap:0.7rem; }
+.pro-tip-icon { font-size:0.95rem; flex-shrink:0; line-height:1.5; }
+.pro-tip p { font-size:0.72rem; color:var(--text-mid); margin:0; line-height:1.6; }
+.pro-tip strong { color:#3A5A35; }
+
+/* Pull quote */
+.pq { background:var(--yellow-bg); border-left:3px solid var(--gold); border-radius:0 8px 8px 0; padding:1rem 1.2rem; margin:1rem 0; }
+.pq p { font-family:'Cormorant Garamond',serif; font-size:0.92rem; font-style:italic; color:var(--text-dark); margin:0; line-height:1.55; }
+
+/* Gear cards grid */
+.card-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.7rem; margin:0.8rem 0; }
+.card { background:white; border:1px solid var(--blush); border-radius:8px; padding:0.9rem; }
+.card .tag { font-size:0.5rem; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; padding:0.2rem 0.5rem; border-radius:20px; display:inline-block; margin-bottom:0.4rem; }
+.tag.blue  { background:var(--baby-blue); color:var(--blue); }
+.tag.pink  { background:var(--rose-mist); color:var(--rose); }
+.tag.gold  { background:var(--yellow-bg); color:var(--gold); }
+.tag.sage  { background:var(--sage-mist); color:var(--sage-g); }
+.card h5   { font-family:'Cormorant Garamond',serif; font-size:0.88rem; font-weight:500; color:var(--text-dark); margin-bottom:0.3rem; }
+.card p    { font-size:0.65rem; color:var(--text-light); line-height:1.5; margin:0; }
+.card .rec { font-size:0.6rem; font-weight:500; color:var(--gold); margin-top:0.35rem; }
+
+/* Steps */
+ol.steps { list-style:none; counter-reset:step; margin:0.8rem 0; }
+ol.steps li { counter-increment:step; display:flex; gap:0.7rem; align-items:flex-start; margin-bottom:0.65rem; }
+ol.steps li::before { content:counter(step); font-family:'Cormorant Garamond',serif; font-size:0.75rem; font-weight:500; color:white; background:var(--blue); min-width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+ol.steps li p { font-size:0.72rem; color:var(--text-mid); margin:0; line-height:1.6; padding-top:0.2rem; }
+
+/* Checklist */
+ul.cklist { list-style:none; margin:0.6rem 0; }
+ul.cklist li { font-size:0.72rem; color:var(--text-mid); padding:0.3rem 0; border-bottom:1px solid var(--cream); display:flex; gap:0.5rem; }
+ul.cklist li::before { content:'○'; color:var(--gold); font-size:0.8rem; line-height:1.2; flex-shrink:0; }
+
+/* Mini table */
+.mini-table { width:100%; border-collapse:collapse; font-size:0.68rem; margin:0.8rem 0; }
+.mini-table th { background:var(--baby-blue); color:var(--blue); font-weight:700; letter-spacing:0.1em; text-transform:uppercase; font-size:0.58rem; padding:0.45rem 0.6rem; text-align:left; }
+.mini-table td { padding:0.4rem 0.6rem; color:var(--text-mid); border-bottom:1px solid var(--cream); }
+.mini-table tr:nth-child(even) td { background:var(--sky-mist); }
+.mini-table .v { font-family:'Cormorant Garamond',serif; font-size:0.85rem; font-weight:500; color:var(--text-dark); }
+
+/* Spec items */
+.spec-row { display:flex; gap:0.5rem; margin:0.6rem 0; flex-wrap:wrap; }
+.spec-item { background:var(--sky-mist); border-radius:6px; padding:0.5rem 0.7rem; text-align:center; flex:1; min-width:70px; }
+.spec-val { font-family:'Cormorant Garamond',serif; font-size:1.2rem; font-weight:500; color:var(--text-dark); display:block; }
+.spec-lbl { font-size:0.55rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:var(--blue); }
+
+/* Image placeholder */
+.imgph { border:1.5px dashed var(--blush); border-radius:8px; min-height:140px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:1rem; color:var(--text-light); background:var(--rose-mist); margin:0.8rem 0; }
+.imgph.blue { background:var(--sky-mist); border-color:var(--baby-blue); }
+.imgph.gold { background:var(--cream); border-color:var(--warm-sand); }
+.imgph .iph-t { font-size:0.6rem; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:var(--text-mid); margin-top:0.4rem; }
+.imgph .iph-d { font-size:0.62rem; color:var(--text-light); margin-top:0.2rem; max-width:200px; }
+
+/* Page number footer */
+.pg-footer { position:absolute; bottom:0; left:0; right:0; padding:0.6rem 1.5rem; display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--warm-sand); }
+.pg-footer span { font-size:0.6rem; color:var(--text-light); letter-spacing:0.12em; text-transform:uppercase; }
+
+/* Two-col layout */
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin:0.7rem 0; }
+.three-col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.7rem; margin:0.7rem 0; }
+
+/* Diagram wrapper */
+.diag { background:white; border:1px solid var(--blush); border-radius:8px; overflow:hidden; margin:0.9rem 0; }
+.diag svg { width:100%; display:block; }
+.diag-cap { padding:0.4rem 0.8rem; font-size:0.6rem; color:var(--text-light); letter-spacing:0.06em; border-top:1px solid var(--cream); display:flex; justify-content:space-between; }
+.diag-tag { font-size:0.52rem; font-weight:700; background:var(--lavender); color:#5A4A8A; padding:0.15rem 0.45rem; border-radius:10px; letter-spacing:0.08em; text-transform:uppercase; }
+
+/* ══════════════════════════════════════════════════════
+   THUMBNAIL STRIP (bottom)
+   ══════════════════════════════════════════════════════ */
+#thumb-strip {
+  position:fixed; bottom:52px; left:50%; transform:translateX(-50%);
+  display:flex; gap:6px; z-index:150; align-items:center;
+}
+.thumb {
+  width:28px; height:18px; border-radius:2px; cursor:pointer;
+  background:rgba(255,255,255,0.25); border:1px solid rgba(255,255,255,0.15);
+  transition:all 0.2s; flex-shrink:0;
+}
+.thumb.active { background:var(--gold); border-color:var(--gold); transform:scaleY(1.3); }
+.thumb:hover { background:rgba(255,255,255,0.55); }
+
+/* ══════════════════════════════════════════════════════
+   FLIP HINT
+   ══════════════════════════════════════════════════════ */
+#flip-hint {
+  position:fixed; bottom:105px; right:90px;
+  background:rgba(184,154,94,0.92); color:white; border-radius:20px;
+  padding:8px 18px; font-size:9px; font-weight:600; letter-spacing:0.18em; text-transform:uppercase;
+  pointer-events:none; opacity:1; transition:opacity 1.5s;
+  display:flex; align-items:center; gap:8px;
+  box-shadow: 0 4px 16px rgba(184,154,94,0.4);
+  animation: pulse-hint 2s ease-in-out infinite;
+}
+@keyframes pulse-hint {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.04); }
+}
+#flip-hint.hidden { opacity:0; animation:none; }
+
+/* Responsive scaling */
+@media (max-width: 1400px) {
+  #book { transform: scale(0.85); transform-origin: center center; }
+}
+@media (max-width: 1100px) {
+  #book { transform: scale(0.65); }
+}
+@media (max-width: 800px) {
+  #book { transform: scale(0.45); }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════ TOP BAR ══════════════════════ -->
+<div id="topbar">
+  <div class="tl">Luxury Real Estate Photography — The Professional's Complete Guide</div>
+  <div class="tr">
+    <div class="tb-btn" onclick="openTOC()">☰ Contents</div>
+    <div id="pagecount">Page 1 of 44</div>
+    <div class="tb-btn" onclick="toggleFS()">⤢ Full Screen</div>
+  </div>
+</div>
+
+<!-- ══════════════════════ NAV ARROWS ══════════════════════ -->
+<div class="nav-arrow disabled" id="nav-prev" onclick="flipPrev()">
+  <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+</div>
+<div class="nav-arrow" id="nav-next" onclick="flipNext()">
+  <svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg>
+</div>
+
+<!-- ══════════════════════ BOOK STAGE ══════════════════════ -->
+<div id="stage">
+  <div id="book-wrap">
+  <div id="book">
+
+    <!-- Background halves -->
+    <div class="book-half" id="left-half"></div>
+    <div class="book-half" id="right-half"></div>
+    <div id="spine"></div>
+
+    <!-- Static left page (initially empty/back cover feel) -->
+    <div id="static-left">
+  <div style="width:100%;height:100%;background:linear-gradient(165deg,#C8DDEF 0%,#EDD0DA 50%,#F5ECD4 100%);display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;padding:3rem;position:relative;overflow:hidden;">
+    <div style="position:absolute;top:-50px;left:-50px;width:200px;height:200px;background:rgba(255,255,255,0.18);border-radius:50%;"></div>
+    <div style="position:relative;z-index:2;">
+      <div style="width:40px;height:2px;background:#B89A5E;border-radius:2px;margin-bottom:1.2rem;"></div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:0.75rem;font-weight:300;color:#5C5047;letter-spacing:0.08em;margin-bottom:0.6rem;font-style:italic;">First Edition · 2025</div>
+      <div style="font-size:0.58rem;font-weight:600;letter-spacing:0.3em;text-transform:uppercase;color:#8C7E72;margin-bottom:0.4rem;">Chapters I – X</div>
+      <div style="font-size:0.58rem;font-weight:600;letter-spacing:0.3em;text-transform:uppercase;color:#8C7E72;">88 Pages · 6 Bonus Templates</div>
+    </div>
+  </div>
+</div>
+
+    <!-- LEAVES — each leaf: front = right page (recto), back = left page of next spread (verso) -->
+    <!-- Leaves are stacked; leaf 0 is on top initially -->
+
+    <!-- LEAF 0 — Front: Cover | Back: TOC left -->
+    <div class="leaf" id="leaf-0" data-index="0">
+      <div class="leaf-front">
+        <div class="pg pg-cover">
+          <div style="position:relative;z-index:2;">
+            <div class="cover-badge">Professional Digital eBook · Luxury Series</div>
+            <div class="cover-title"><em>Luxury</em> Real Estate<br>Photography</div>
+            <p class="cover-sub">The complete insider's guide to professional techniques, lighting mastery, and high-end client work — Chapters I through X.</p>
+            <div class="cover-gold-line"></div>
+          </div>
+          <div class="cover-imgph">
+            <div class="cover-imgph-label">
+              <svg width="36" height="36" viewBox="0 0 48 48" fill="none"><rect x="4" y="10" width="40" height="30" rx="4" stroke="#B89A5E" stroke-width="1.5"/><circle cx="24" cy="25" r="8" stroke="#B89A5E" stroke-width="1.5"/><circle cx="24" cy="25" r="3" fill="#B89A5E" opacity="0.4"/></svg>
+              <p>Your Hero Image Here</p>
+            </div>
+          </div>
+          <div class="cover-footer">
+            <div><div class="cover-edition">First Edition · 2025</div><div style="font-family:'Cormorant Garamond',serif;font-size:0.75rem;color:var(--text-light);">For Photographers Who Demand More</div></div>
+            <div style="text-align:right;"><div style="font-size:0.55rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-light);">10 Chapters · 88 Pages</div><div style="font-size:0.65rem;color:var(--text-mid);margin-top:0.2rem;">Gear · Settings · Lighting · Field Work</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="leaf-back">
+        <!-- TOC left page -->
+        <div class="pg pg-content">
+          <div style="font-size:0.55rem;font-weight:700;letter-spacing:0.28em;text-transform:uppercase;color:var(--rose);margin-bottom:0.6rem;display:flex;align-items:center;gap:8px;">Contents<div style="flex:1;height:1px;background:var(--blush);"></div></div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:300;color:var(--text-dark);margin-bottom:1.5rem;">What You'll Master</div>
+          <!-- TOC entries Part 1 -->
+          <div style="margin-bottom:0.8rem;"><div style="display:flex;justify-content:space-between;align-items:baseline;padding:0.4rem 0;border-bottom:1px solid var(--warm-sand);"><span style="font-size:0.58rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Intro</span><span style="font-family:'Cormorant Garamond',serif;font-size:0.9rem;font-weight:500;color:var(--text-dark);">Introduction to Real Estate Photography</span><span style="font-size:0.62rem;color:var(--text-light);">4</span></div></div>
+          <div style="margin-bottom:0.8rem;"><div style="display:flex;justify-content:space-between;align-items:baseline;padding:0.4rem 0;border-bottom:1px solid var(--warm-sand);"><span style="font-size:0.58rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Chapter 01</span><span style="font-family:'Cormorant Garamond',serif;font-size:0.9rem;font-weight:500;color:var(--text-dark);">Essential Gear Guide</span><span style="font-size:0.62rem;color:var(--text-light);">8</span></div><div style="font-size:0.64rem;color:var(--text-light);padding-left:0.5rem;padding-top:0.2rem;line-height:1.6;">Camera Bodies · Lenses · Tripods · Flash · Drones · Storage · Filters</div></div>
+          <div style="margin-bottom:0.8rem;"><div style="display:flex;justify-content:space-between;align-items:baseline;padding:0.4rem 0;border-bottom:1px solid var(--warm-sand);"><span style="font-size:0.58rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Chapter 02</span><span style="font-family:'Cormorant Garamond',serif;font-size:0.9rem;font-weight:500;color:var(--text-dark);">Camera Setup & Core Settings</span><span style="font-size:0.62rem;color:var(--text-light);">16</span></div><div style="font-size:0.64rem;color:var(--text-light);padding-left:0.5rem;padding-top:0.2rem;line-height:1.6;">RAW · White Balance · ISO · Bracketing · Histogram · Dynamic Range</div></div>
+          <div style="margin-bottom:0.8rem;"><div style="display:flex;justify-content:space-between;align-items:baseline;padding:0.4rem 0;border-bottom:1px solid var(--warm-sand);"><span style="font-size:0.58rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Chapter 03</span><span style="font-family:'Cormorant Garamond',serif;font-size:0.9rem;font-weight:500;color:var(--text-dark);">Lighting Fundamentals</span><span style="font-size:0.62rem;color:var(--text-light);">22</span></div><div style="font-size:0.64rem;color:var(--text-light);padding-left:0.5rem;padding-top:0.2rem;line-height:1.6;">Natural Light · Flash-Ambient · Window Pull · Multi-Flash · Twilight</div></div>
+          <div style="margin-bottom:0.8rem;"><div style="display:flex;justify-content:space-between;align-items:baseline;padding:0.4rem 0;border-bottom:1px solid var(--warm-sand);"><span style="font-size:0.58rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Chapter 04</span><span style="font-family:'Cormorant Garamond',serif;font-size:0.9rem;font-weight:500;color:var(--text-dark);">Property Preparation Workflow</span><span style="font-size:0.62rem;color:var(--text-light);">29</span></div><div style="font-size:0.64rem;color:var(--text-light);padding-left:0.5rem;padding-top:0.2rem;line-height:1.6;">Realtor Comms · Staging · Cleaning · Exterior Prep · Final Walkthrough</div></div>
+          <div style="margin-bottom:0.8rem;"><div style="display:flex;justify-content:space-between;align-items:baseline;padding:0.4rem 0;border-bottom:1px solid var(--warm-sand);"><span style="font-size:0.58rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Chapter 05</span><span style="font-family:'Cormorant Garamond',serif;font-size:0.9rem;font-weight:500;color:var(--text-dark);">Pre-Shoot Planning</span><span style="font-size:0.62rem;color:var(--text-light);">33</span></div><div style="font-size:0.64rem;color:var(--text-light);padding-left:0.5rem;padding-top:0.2rem;line-height:1.6;">Booking · Intake · Sun Position · Weather · Logistics · Client Expectations</div></div>
+          <div class="pg-footer"><span>Luxury Real Estate Photography</span><span>2025</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEAF 1 — Front: TOC right | Back: Chapter I header -->
+    <div class="leaf" id="leaf-1" data-index="1">
+      <div class="leaf-front">
+        <div class="pg pg-content right-pg">
+          <div style="height:0.6rem;"></div>
+          <div style="margin-bottom:0.8rem;"><div style="display:flex;justify-content:space-between;align-items:baseline;padding:0.4rem 0;border-bottom:1px solid var(--warm-sand);"><span style="font-size:0.58rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Chapter 06</span><span style="font-family:'Cormorant Garamond',serif;font-size:0.9rem;font-weight:500;color:var(--text-dark);">Interior Photography Workflow</span><span style="font-size:0.62rem;color:var(--text-light);">38</span></div><div style="font-size:0.64rem;color:var(--text-light);padding-left:0.5rem;padding-top:0.2rem;line-height:1.6;">Room Order · Kitchen · Bedroom · Bathroom · Composition · Depth · Windows</div></div>
+          <div style="margin-bottom:0.8rem;"><div style="display:flex;justify-content:space-between;align-items:baseline;padding:0.4rem 0;border-bottom:1px solid var(--warm-sand);"><span style="font-size:0.58rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Chapter 07</span><span style="font-family:'Cormorant Garamond',serif;font-size:0.9rem;font-weight:500;color:var(--text-dark);">Exterior Photography Workflow</span><span style="font-size:0.62rem;color:var(--text-light);">43</span></div><div style="font-size:0.64rem;color:var(--text-light);padding-left:0.5rem;padding-top:0.2rem;line-height:1.6;">Front Elevation · Pool · Patio · Twilight · Drone · Street Perspective</div></div>
+          <div style="margin-bottom:0.8rem;"><div style="display:flex;justify-content:space-between;align-items:baseline;padding:0.4rem 0;border-bottom:1px solid var(--warm-sand);"><span style="font-size:0.58rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Chapter 08</span><span style="font-family:'Cormorant Garamond',serif;font-size:0.9rem;font-weight:500;color:var(--text-dark);">Composition Masterclass</span><span style="font-size:0.62rem;color:var(--text-light);">47</span></div><div style="font-size:0.64rem;color:var(--text-light);padding-left:0.5rem;padding-top:0.2rem;line-height:1.6;">Leading Lines · Symmetry · Corner Pull · Depth · Minimalist · Luxury Styles</div></div>
+          <div style="margin-bottom:0.8rem;"><div style="display:flex;justify-content:space-between;align-items:baseline;padding:0.4rem 0;border-bottom:1px solid var(--warm-sand);"><span style="font-size:0.58rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Chapter 09</span><span style="font-family:'Cormorant Garamond',serif;font-size:0.9rem;font-weight:500;color:var(--text-dark);">Advanced Techniques</span><span style="font-size:0.62rem;color:var(--text-light);">51</span></div><div style="font-size:0.64rem;color:var(--text-light);padding-left:0.5rem;padding-top:0.2rem;line-height:1.6;">Flambient · Exposure Blending · Window Masking · Sky & TV Replacements · Retouching</div></div>
+          <div style="margin-bottom:0.8rem;"><div style="display:flex;justify-content:space-between;align-items:baseline;padding:0.4rem 0;border-bottom:1px solid var(--warm-sand);"><span style="font-size:0.58rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Chapter 10</span><span style="font-family:'Cormorant Garamond',serif;font-size:0.9rem;font-weight:500;color:var(--text-dark);">Common Problems & Solutions</span><span style="font-size:0.62rem;color:var(--text-light);">57</span></div><div style="font-size:0.64rem;color:var(--text-light);padding-left:0.5rem;padding-top:0.2rem;line-height:1.6;">Mixed Lighting · Small Rooms · Window Overexposure · Colour Cast · Reflections · Verticals · Fast Turnaround</div></div>
+          <div style="margin-bottom:0.8rem;"><div style="display:flex;justify-content:space-between;align-items:baseline;padding:0.4rem 0;border-bottom:1px solid var(--warm-sand);"><span style="font-size:0.58rem;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);">Bonus Pack</span><span style="font-family:'Cormorant Garamond',serif;font-size:0.9rem;font-weight:500;color:var(--text-dark);">Room Workflow Templates</span><span style="font-size:0.62rem;color:var(--text-light);">65</span></div><div style="font-size:0.64rem;color:var(--text-light);padding-left:0.5rem;padding-top:0.2rem;line-height:1.6;">Kitchen · Living Room · Dining · Master Bedroom · Laundry · Bathroom</div></div>
+          <div style="margin-top:1.5rem;background:var(--yellow-bg);border-radius:8px;padding:0.9rem 1rem;border-left:3px solid var(--gold);"><p style="font-size:0.7rem;color:var(--text-mid);margin:0;line-height:1.6;"><strong style="color:var(--gold);">How to use this guide:</strong> Each chapter builds on the previous. First-time readers: proceed sequentially. Working professionals: use this as a reference — navigate directly to the chapter addressing your current challenge.</p></div>
+          <div class="pg-footer"><span>Table of Contents</span><span>3</span></div>
+        </div>
+      </div>
+      <div class="leaf-back">
+        <!-- Chapter I header -->
+        <div class="pg pg-content">
+          <div style="font-size:0.55rem;font-weight:700;letter-spacing:0.28em;text-transform:uppercase;color:var(--rose);margin-bottom:1rem;display:flex;align-items:center;gap:8px;">Introduction<div style="flex:1;height:1px;background:var(--blush);"></div></div>
+          <div class="ch-header gold" data-num="I"><div class="ch-lbl">The Foundation</div><div class="ch-title">Introduction to<br>Real Estate Photography</div></div>
+          <div class="sec-h">Industry Overview</div>
+          <p class="body">Real estate photography sits at the intersection of technical precision and artistic vision. Unlike portrait or event photography, you are selling a feeling — the warmth of morning light spilling across hardwood floors, the expansive openness of a properly composed living room.</p>
+          <div class="pq"><p>"The difference between a $200 shoot and a $2,000 shoot is not the camera body — it's the photographer's understanding of how light, composition, and timing conspire to make a space feel inevitable."</p></div>
+          <div class="sec-h">Market Segments</div>
+          <table class="mini-table"><thead><tr><th>Market Tier</th><th>Price Range</th><th>Shoot Fee</th></tr></thead><tbody>
+            <tr><td>Entry</td><td>Under $500K</td><td class="v">$150–$350</td></tr>
+            <tr><td>Mid-Market</td><td>$500K–$1.5M</td><td class="v">$350–$700</td></tr>
+            <tr><td>Luxury</td><td>$1.5M–$5M</td><td class="v">$800–$2,500</td></tr>
+            <tr><td>Ultra-Luxury</td><td>$5M+</td><td class="v">$2,500+</td></tr>
+          </tbody></table>
+          <div class="pg-footer"><span>Introduction</span><span>4</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEAF 2 — Front: Ch1 Gear | Back: Ch1 Lenses -->
+    <div class="leaf" id="leaf-2" data-index="2">
+      <div class="leaf-front">
+        <div class="pg pg-content right-pg">
+          <div style="font-size:0.55rem;font-weight:700;letter-spacing:0.28em;text-transform:uppercase;color:var(--rose);margin-bottom:1rem;display:flex;align-items:center;gap:8px;">Chapter One<div style="flex:1;height:1px;background:var(--blush);"></div></div>
+          <div class="ch-header blue" data-num="1"><div class="ch-lbl">Your Kit</div><div class="ch-title">Essential Gear Guide</div></div>
+          <div class="sec-h">Recommended Camera Bodies</div>
+          <div class="card-grid">
+            <div class="card"><span class="tag blue">Top Pick</span><h5>Sony A7R V</h5><p>61MP full-frame. Industry-leading dynamic range. Best for luxury work.</p></div>
+            <div class="card"><span class="tag blue">Top Pick</span><h5>Nikon Z8</h5><p>45.7MP. Superb colour science. Excellent ergonomics for long shoot days.</p></div>
+            <div class="card"><span class="tag pink">Value</span><h5>Canon EOS R5</h5><p>45MP. Outstanding shadow recovery. Excellent IBIS for video walkthroughs.</p></div>
+            <div class="card"><span class="tag gold">Budget Pro</span><h5>Sony A7 IV</h5><p>33MP. Outstanding value. Class-leading autofocus. Best entry to full-frame.</p></div>
+          </div>
+          <div class="sec-h">Full-Frame vs APS-C</div>
+          <p class="body"><strong>Full-frame</strong> delivers a decisive advantage: a 16mm lens captures a 107° horizontal field of view vs. 24mm-equivalent on APS-C. For luxury work, full-frame is non-negotiable. <strong>APS-C</strong> earns its place as a backup body — lighter for long shoot days, more affordable, and capable of professional results in the mid-market segment.</p>
+          <div class="pg-footer"><span>Chapter 1 · Essential Gear Guide</span><span>8</span></div>
+        </div>
+      </div>
+      <div class="leaf-back">
+        <div class="pg pg-content">
+          <div class="sec-h">Recommended Lenses</div>
+          <table class="mini-table"><thead><tr><th>Focal Length</th><th>Best Use</th><th>Key Models</th></tr></thead><tbody>
+            <tr><td class="v">14–16mm</td><td>Bathrooms, closets, small rooms</td><td>Sony FE 14mm f/1.8</td></tr>
+            <tr><td class="v">16–18mm</td><td>Kitchens, bedrooms</td><td>Sigma 16mm f/1.4 DC DN</td></tr>
+            <tr><td class="v">24mm</td><td>Living rooms, great rooms</td><td>Sony FE 24mm f/1.4 GM</td></tr>
+            <tr><td class="v">24–70mm</td><td>Details, versatility</td><td>Sony 24-70mm f/2.8 GM II</td></tr>
+            <tr><td class="v">70–200mm</td><td>Facades, compression shots</td><td>Sony 70-200mm f/2.8 GM II</td></tr>
+          </tbody></table>
+          <div class="sec-h">Flash & Strobe Recommendations</div>
+          <div class="two-col">
+            <div class="box blue"><h5>Speedlights</h5><p>Godox V1 / AD200Pro — the industry standard. V1 for bounce work; AD200Pro for multi-light setups. TTL + manual. ~$250–$350 each.</p></div>
+            <div class="box gold"><h5>Strobes</h5><p>Godox AD600 Pro — 600Ws battery monolight. Enough power to balance exterior daylight. No power cord needed in luxury homes.</p></div>
+          </div>
+          <div class="pro-tip"><div class="pro-tip-icon">💡</div><p><strong>3-2-1 Storage Rule:</strong> Three copies of every file. Two different storage types. One offsite. Before leaving a shoot, confirm your primary card is backed up to at least one additional source. A luxury shoot can represent $2,000–$5,000 in billable value.</p></div>
+          <div class="pg-footer"><span>Chapter 1 · Essential Gear Guide</span><span>10</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEAF 3 — Front: Ch2 Settings | Back: Ch2 Bracketing -->
+    <div class="leaf" id="leaf-3" data-index="3">
+      <div class="leaf-front">
+        <div class="pg pg-content right-pg">
+          <div style="font-size:0.55rem;font-weight:700;letter-spacing:0.28em;text-transform:uppercase;color:var(--rose);margin-bottom:1rem;display:flex;align-items:center;gap:8px;">Chapter Two<div style="flex:1;height:1px;background:var(--blush);"></div></div>
+          <div class="ch-header sage" data-num="2"><div class="ch-lbl">Technical Mastery</div><div class="ch-title">Camera Setup &amp;<br>Core Settings</div></div>
+          <div class="sec-h">RAW vs JPEG — No Debate</div>
+          <p class="body"><strong>Shoot RAW. Always.</strong> JPEG permanently discards the majority of data your sensor captures. For real estate photography — where you must recover blown highlights AND lift deep shadows in the same image — JPEG simply cannot deliver what's needed. RAW gives you up to 14 stops of recoverable dynamic range.</p>
+          <div class="sec-h">ISO Guidelines</div>
+          <div class="spec-row">
+            <div class="spec-item"><span class="spec-val">100</span><span class="spec-lbl">Always prefer</span></div>
+            <div class="spec-item"><span class="spec-val">200</span><span class="spec-lbl">Acceptable</span></div>
+            <div class="spec-item"><span class="spec-val">400</span><span class="spec-lbl">Luxury limit</span></div>
+            <div class="spec-item"><span class="spec-val">800+</span><span class="spec-lbl">Avoid</span></div>
+          </div>
+          <div class="sec-h">Aperture Sweet Spot</div>
+          <p class="body">For real estate, the aperture goal is edge-to-edge sharpness. Most quality wide lenses achieve their sharpest output between <strong>f/8 and f/11</strong>. Below this, aberrations reduce sharpness. Above f/16, diffraction sets in — counter-intuitively making images <em>less</em> sharp when stopped down further.</p>
+          <div class="box blue"><h5>The Flicker Problem</h5><p>In North America, fluorescent and LED lights cycle at 120Hz. Always shoot at multiples of 1/125s for indoor artificial light to avoid inconsistent brightness across your bracket sequence.</p></div>
+          <div class="pg-footer"><span>Chapter 2 · Camera Setup & Core Settings</span><span>16</span></div>
+        </div>
+      </div>
+      <div class="leaf-back">
+        <div class="pg pg-content">
+          <div class="sec-h">Bracketing Setup for Real Estate</div>
+          <table class="mini-table"><thead><tr><th>Situation</th><th>Frames</th><th>EV Step</th><th>Range</th></tr></thead><tbody>
+            <tr><td>Mild contrast</td><td class="v">3</td><td>2 EV</td><td>-2, 0, +2</td></tr>
+            <tr><td>Standard interior</td><td class="v">5</td><td>2 EV</td><td>-4 to +4</td></tr>
+            <tr><td>High contrast</td><td class="v">7</td><td>2 EV</td><td>-6 to +6</td></tr>
+            <tr><td>Extreme / twilight</td><td class="v">9</td><td>1 EV</td><td>-4 to +4</td></tr>
+          </tbody></table>
+          <div class="sec-h">Histogram Reading for Real Estate</div>
+          <!-- SVG Histogram Diagram -->
+          <div class="diag">
+            <svg viewBox="0 0 590 160" xmlns="http://www.w3.org/2000/svg">
+              <rect width="590" height="160" fill="#F9F4F7"/>
+              <line x1="40" y1="140" x2="400" y2="140" stroke="#DDD0D8" stroke-width="0.8"/>
+              <text x="40" y="155" font-family="Jost" font-size="8" fill="#8A7070">Blacks</text><text x="130" y="155" font-family="Jost" font-size="8" fill="#8A7070">Shadows</text><text x="220" y="155" font-family="Jost" font-size="8" fill="#8A7070">Midtones</text><text x="310" y="155" font-family="Jost" font-size="8" fill="#8A7070">Highlights</text>
+              <!-- Good histogram bars -->
+              <rect x="44" y="108" width="6" height="32" fill="#C5B8BE"/><rect x="52" y="96" width="6" height="44" fill="#C0ADBB"/><rect x="60" y="82" width="6" height="58" fill="#BBAAB8"/><rect x="68" y="72" width="6" height="68" fill="#B5A5B5"/><rect x="76" y="62" width="6" height="78" fill="#B0A0B2"/><rect x="84" y="56" width="6" height="84" fill="#AA9BAF"/><rect x="92" y="52" width="6" height="88" fill="#A596AC"/><rect x="100" y="55" width="6" height="85" fill="#A094AA"/><rect x="108" y="64" width="6" height="76" fill="#9D90A8"/><rect x="116" y="74" width="6" height="66" fill="#9A8CA6"/><rect x="124" y="84" width="6" height="56" fill="#978AA4"/><rect x="132" y="96" width="6" height="44" fill="#9488A2"/><rect x="140" y="108" width="6" height="32" fill="#9186A0"/><rect x="148" y="118" width="6" height="22" fill="#8E849E"/><rect x="156" y="126" width="6" height="14" fill="#8B829C"/>
+              <text x="100" y="22" font-family="Jost" font-size="8.5" fill="#5A8A60" text-anchor="middle" font-weight="600">✓ Correct — No Clipping</text>
+              <text x="100" y="34" font-family="Jost" font-size="7.5" fill="#6A9A70" text-anchor="middle">Highlights preserved · Shadows recoverable</text>
+              <!-- Bad histogram — blown right -->
+              <rect x="224" y="118" width="6" height="22" fill="#C5B8BE"/><rect x="232" y="108" width="6" height="32" fill="#C0ADBB"/><rect x="240" y="88" width="6" height="52" fill="#BBAAB8"/><rect x="248" y="72" width="6" height="68" fill="#B5A5B5"/><rect x="256" y="60" width="6" height="80" fill="#B0A0B2"/><rect x="264" y="50" width="6" height="90" fill="#AA9BAF"/><rect x="272" y="42" width="6" height="98" fill="#A596AC"/><rect x="280" y="38" width="6" height="102" fill="#A094AA"/>
+              <!-- Spike = blown -->
+              <rect x="288" y="10" width="6" height="130" fill="#C8594A"/><rect x="296" y="10" width="6" height="130" fill="#C8594A"/><rect x="304" y="10" width="6" height="130" fill="#C04540"/>
+              <text x="270" y="22" font-family="Jost" font-size="8.5" fill="#C8594A" text-anchor="middle" font-weight="600">✗ Incorrect — Blown Highlights</text>
+              <text x="270" y="34" font-family="Jost" font-size="7.5" fill="#C8594A" text-anchor="middle">Window detail lost permanently</text>
+              <!-- Key rule -->
+              <rect x="400" y="20" width="180" height="110" rx="6" fill="#FDF0F4" stroke="#E0C8D0"/>
+              <text x="490" y="38" font-family="Jost" font-size="8" fill="#8A5A6A" text-anchor="middle" font-weight="700">THE CARDINAL RULE</text>
+              <text x="490" y="54" font-family="Jost" font-size="7.5" fill="#9A7080" text-anchor="middle">Never clip highlights</text>
+              <text x="490" y="68" font-family="Jost" font-size="7.5" fill="#9A7080" text-anchor="middle">in-camera. A slightly</text>
+              <text x="490" y="82" font-family="Jost" font-size="7.5" fill="#9A7080" text-anchor="middle">underexposed image</text>
+              <text x="490" y="96" font-family="Jost" font-size="7.5" fill="#9A7080" text-anchor="middle">retaining window detail</text>
+              <text x="490" y="110" font-family="Jost" font-size="7.5" fill="#9A7080" text-anchor="middle">is always superior.</text>
+            </svg>
+            <div class="diag-cap"><span>Histogram reading — Real estate workflow</span><span class="diag-tag">Illustrated Diagram</span></div>
+          </div>
+          <div class="pg-footer"><span>Chapter 2 · Camera Setup & Core Settings</span><span>18</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEAF 4 — Front: Ch3 Lighting | Back: Ch3 Flash Diagram -->
+    <div class="leaf" id="leaf-4" data-index="4">
+      <div class="leaf-front">
+        <div class="pg pg-content right-pg">
+          <div style="font-size:0.55rem;font-weight:700;letter-spacing:0.28em;text-transform:uppercase;color:var(--rose);margin-bottom:1rem;display:flex;align-items:center;gap:8px;">Chapter Three<div style="flex:1;height:1px;background:var(--blush);"></div></div>
+          <div class="ch-header pink" data-num="3"><div class="ch-lbl">The Art of Light</div><div class="ch-title">Lighting Fundamentals</div></div>
+          <div class="sec-h">Natural Light Workflow</div>
+          <table class="mini-table"><thead><tr><th>Room Orientation</th><th>Best Time</th><th>Avoid</th></tr></thead><tbody>
+            <tr><td>East-facing</td><td class="v">8–10 AM</td><td>Afternoon — flat light</td></tr>
+            <tr><td>West-facing</td><td class="v">4–6 PM</td><td>Morning — backlit</td></tr>
+            <tr><td>North-facing</td><td class="v">Midday</td><td>Any time is acceptable</td></tr>
+            <tr><td>South-facing</td><td class="v">10 AM–2 PM</td><td>Golden hour — extreme contrast</td></tr>
+            <tr><td>Exterior / any</td><td class="v">Golden hour ±45 min</td><td>Midday overhead</td></tr>
+          </tbody></table>
+          <div class="sec-h">Twilight & Blue Hour</div>
+          <div class="pq"><p>"Twilight photography is where preparation meets opportunity. The house that looks adequate at noon can look extraordinary at blue hour — but only if you've spent 45 minutes setting up before the sky turns."</p></div>
+          <div class="three-col">
+            <div class="box blue"><h5>Civil Twilight</h5><p>Orange → pink sky. WB: 4500K. Warm dramatic atmosphere.</p></div>
+            <div class="box gold"><h5>Nautical ★</h5><p>Deep blue sky. WB: 3200K. The classic luxury look. 15–20 min window.</p></div>
+            <div class="box pink"><h5>Astronomical</h5><p>Navy → dark blue. Very dramatic. Sky quickly goes black — act fast.</p></div>
+          </div>
+          <div class="pg-footer"><span>Chapter 3 · Lighting Fundamentals</span><span>22</span></div>
+        </div>
+      </div>
+      <div class="leaf-back">
+        <div class="pg pg-content">
+          <div class="sec-h">Flash-Ambient Ceiling Bounce</div>
+          <!-- Bounce vs Direct Flash diagram -->
+          <div class="diag">
+            <svg viewBox="0 0 590 200" xmlns="http://www.w3.org/2000/svg">
+              <rect width="590" height="200" fill="#F5F0ED"/>
+              <!-- LEFT: Ceiling Bounce CORRECT -->
+              <rect x="15" y="20" width="270" height="165" rx="4" fill="#EEF4EE" stroke="#B8C8B0" stroke-width="1"/>
+              <rect x="15" y="20" width="270" height="14" fill="#DDE9D8"/>
+              <text x="150" y="30" font-family="Jost" font-size="7.5" fill="#6A9A62" text-anchor="middle">White Ceiling — Bounce Surface</text>
+              <!-- Flash up -->
+              <circle cx="80" cy="155" r="8" fill="#E8D4D8" stroke="#B08090" stroke-width="1"/>
+              <rect x="74" y="148" width="12" height="9" rx="2" fill="#B08090"/>
+              <rect x="77" y="138" width="6" height="10" rx="1" fill="#C09090"/>
+              <!-- Flash beam up -->
+              <line x1="80" y1="138" x2="140" y2="34" stroke="#F5C070" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.8"/>
+              <!-- Bounce fan -->
+              <line x1="140" y1="34" x2="80" y2="130" stroke="#F5D090" stroke-width="1" stroke-dasharray="4,3" opacity="0.6"/>
+              <line x1="140" y1="34" x2="150" y2="140" stroke="#F5D090" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+              <line x1="140" y1="34" x2="220" y2="110" stroke="#F5D090" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.4"/>
+              <ellipse cx="140" cy="34" rx="14" ry="5" fill="#F5E0A0" opacity="0.5"/>
+              <!-- Sofa -->
+              <rect x="120" y="148" width="140" height="28" rx="4" fill="#D8CEC0" stroke="#C0B4A4" stroke-width="0.8"/>
+              <text x="80" y="180" font-family="Jost" font-size="8" fill="#5A8840" text-anchor="middle" font-weight="600">✓ Soft, even fill</text>
+              <text x="80" y="190" font-family="Jost" font-size="7.5" fill="#6A9862" text-anchor="middle">Natural appearance</text>
+
+              <!-- RIGHT: Direct flash INCORRECT -->
+              <rect x="305" y="20" width="270" height="165" rx="4" fill="#FEF5F5" stroke="#E8C0C0" stroke-width="1"/>
+              <circle cx="340" cy="155" r="8" fill="#FDE8E8" stroke="#C85050" stroke-width="1"/>
+              <rect x="334" y="148" width="12" height="9" rx="2" fill="#C85050"/>
+              <!-- Flash head pointing forward -->
+              <rect x="346" y="149" width="10" height="7" rx="2" fill="#D87070"/>
+              <!-- Direct beam -->
+              <line x1="356" y1="152" x2="500" y2="100" stroke="#FF6060" stroke-width="2" stroke-dasharray="5,3" opacity="0.7"/>
+              <!-- Hotspot on back wall -->
+              <ellipse cx="500" cy="98" rx="30" ry="20" fill="#FF9090" opacity="0.4" stroke="#C85050" stroke-width="0.5" stroke-dasharray="3,2"/>
+              <text x="500" y="100" font-family="Jost" font-size="8" fill="#C85050" text-anchor="middle">Hotspot!</text>
+              <!-- Shadow on sofa -->
+              <rect x="380" y="148" width="140" height="28" rx="4" fill="#C8B4A4" stroke="#B0A090" stroke-width="0.8" opacity="0.7"/>
+              <polygon points="370,148 380,148 360,183 350,183" fill="#9A8878" opacity="0.3"/>
+              <text x="340" y="180" font-family="Jost" font-size="8" fill="#C85050" text-anchor="middle" font-weight="600">✗ Harsh shadow</text>
+              <text x="340" y="190" font-family="Jost" font-size="7.5" fill="#C85050" text-anchor="middle">Amateurish result</text>
+            </svg>
+            <div class="diag-cap"><span>Ceiling bounce vs direct flash — always use bounce</span><span class="diag-tag">Lighting Diagram</span></div>
+          </div>
+          <div class="sec-h">Multi-Flash Setup Key Rules</div>
+          <ul class="cklist">
+            <li>Use Godox radio triggers — place units behind furniture, outside frame</li>
+            <li>Start all flash units at 1/8 power, increase from there after test shot</li>
+            <li>Gel all units to match ambient colour temperature (typically 1/2–1 CTO)</li>
+            <li>The camera's on-unit flash must fire to trigger remotes even at 1/128 power</li>
+          </ul>
+          <div class="pg-footer"><span>Chapter 3 · Lighting Fundamentals</span><span>25</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEAF 5 — Front: Ch4 Property Prep | Back: Ch5 Pre-Shoot -->
+    <div class="leaf" id="leaf-5" data-index="5">
+      <div class="leaf-front">
+        <div class="pg pg-content right-pg">
+          <div style="font-size:0.55rem;font-weight:700;letter-spacing:0.28em;text-transform:uppercase;color:var(--rose);margin-bottom:1rem;display:flex;align-items:center;gap:8px;">Chapter Four<div style="flex:1;height:1px;background:var(--blush);"></div></div>
+          <div class="ch-header gold" data-num="4"><div class="ch-lbl">On-Location Mastery</div><div class="ch-title">Property Preparation<br>Workflow</div></div>
+          <div class="sec-h">Final Walkthrough — 5-Step Process</div>
+          <ol class="steps">
+            <li><p><strong>Walk every room with your phone camera</strong> — the lens reveals what the eye filters out. Small objects you don't consciously register will be clearly visible in your final images.</p></li>
+            <li><p><strong>Check every mirror and reflective surface</strong> for your reflection path before unpacking any gear.</p></li>
+            <li><p><strong>Turn on every light</strong> and verify all bulbs function. A single non-working sconce ruins a symmetrical bedroom shot.</p></li>
+            <li><p><strong>Set ceiling fans off.</strong> Fan blades blur at any shutter speed you'll use in interiors — slower than 1/500s.</p></li>
+            <li><p><strong>Check all windows for cleanliness</strong> from the interior. Carry glass cleaner and microfiber in your kit.</p></li>
+          </ol>
+          <div class="box pink"><h5>Decluttering Standards by Room</h5><p><strong>Kitchen:</strong> max 3 items on any countertop. <strong>Bedroom:</strong> nightstands — one lamp, one decorative item. <strong>Bathroom:</strong> completely clear except soap dispenser, small plant, and white hand towel.</p></div>
+          <div class="pg-footer"><span>Chapter 4 · Property Preparation Workflow</span><span>29</span></div>
+        </div>
+      </div>
+      <div class="leaf-back">
+        <div class="pg pg-content">
+          <div style="font-size:0.55rem;font-weight:700;letter-spacing:0.28em;text-transform:uppercase;color:var(--rose);margin-bottom:1rem;display:flex;align-items:center;gap:8px;">Chapter Five<div style="flex:1;height:1px;background:var(--blush);"></div></div>
+          <div class="ch-header blue" data-num="5"><div class="ch-lbl">The Business of Preparation</div><div class="ch-title">Pre-Shoot Planning</div></div>
+          <div class="sec-h">Sun Position Planning Tools</div>
+          <div class="two-col">
+            <div class="box blue"><h5>PhotoPills ★</h5><p>Industry standard. Enter any address and date to see exact sunrise/sunset, golden hour start, and blue hour timing. Plan the precise angle of light through any window at any time.</p></div>
+            <div class="box gold"><h5>Sun Surveyor</h5><p>AR overlay shows sun path through camera viewfinder in real time. Invaluable for scouting — see exactly which windows will be lit at which times before you arrive.</p></div>
+          </div>
+          <div class="sec-h">Shot Planning by Property Type</div>
+          <div class="three-col">
+            <div class="card"><span class="tag blue">Standard</span><h5>25–35 Images</h5><p>All bedrooms, kitchen, living, dining, bathrooms, backyard, 1 twilight.</p></div>
+            <div class="card"><span class="tag gold">Luxury</span><h5>50–80+ Images</h5><p>All standard + hero angles, detail shots, drone (8–12), multiple twilights.</p></div>
+            <div class="card"><span class="tag pink">Minimal</span><h5>15–20 Images</h5><p>Front, kitchen, living, primary bed, 1 bath, backyard. Rentals/land listings.</p></div>
+          </div>
+          <div class="pro-tip"><div class="pro-tip-icon">🗺️</div><p><strong>Google Street View Pre-Scout:</strong> Before arriving at any property, spend 5 minutes in Street View studying facade orientation, driveway approach, utility lines, and neighbours. Arrive knowing your drone flight path and best front elevation angle.</p></div>
+          <div class="pg-footer"><span>Chapter 5 · Pre-Shoot Planning</span><span>33</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEAF 6 — Front: Ch6 Interior | Back: Ch7 Exterior -->
+    <div class="leaf" id="leaf-6" data-index="6">
+      <div class="leaf-front">
+        <div class="pg pg-content right-pg">
+          <div style="font-size:0.55rem;font-weight:700;letter-spacing:0.28em;text-transform:uppercase;color:var(--rose);margin-bottom:1rem;display:flex;align-items:center;gap:8px;">Chapter Six<div style="flex:1;height:1px;background:var(--blush);"></div></div>
+          <div class="ch-header sage" data-num="6"><div class="ch-lbl">Room by Room</div><div class="ch-title">Interior Photography<br>Workflow</div></div>
+          <div class="sec-h">Camera Heights by Room</div>
+          <table class="mini-table"><thead><tr><th>Room</th><th>Camera Height</th><th>Why</th></tr></thead><tbody>
+            <tr><td>Kitchen</td><td class="v">4.0–4.5 ft</td><td>Island reads naturally, pendants anchor frame</td></tr>
+            <tr><td>Living Room</td><td class="v">4.0–4.5 ft</td><td>Sofas look natural, ceiling breathes</td></tr>
+            <tr><td>Bedroom</td><td class="v">4.0 ft</td><td>Bed is visual anchor, not overlooked</td></tr>
+            <tr><td>Bathroom</td><td class="v">4.5 ft</td><td>Shows full vanity without distortion</td></tr>
+            <tr><td>Small rooms</td><td class="v">4.0 ft from doorway</td><td>Never step inside — use doorway threshold</td></tr>
+          </tbody></table>
+          <div class="sec-h">The 3-Layer Composition Rule</div>
+          <div class="three-col">
+            <div class="box blue"><h5>Foreground</h5><p>Rug edge, sofa arm, counter edge. Creates depth entry point for the viewer's eye.</p></div>
+            <div class="box gold"><h5>Midground</h5><p>The room's primary subject — sofa grouping, island, bed. The story.</p></div>
+            <div class="box pink"><h5>Background</h5><p>Focal wall, fireplace, windows. The anchor. Must be compositionally clean.</p></div>
+          </div>
+          <div class="imgph gold"><div style="font-size:1.5rem;">🏠</div><div class="iph-t">Your Interior Hero Shot</div><div class="iph-d">Living room or kitchen showing all three compositional layers</div></div>
+          <div class="pg-footer"><span>Chapter 6 · Interior Photography Workflow</span><span>38</span></div>
+        </div>
+      </div>
+      <div class="leaf-back">
+        <div class="pg pg-content">
+          <div style="font-size:0.55rem;font-weight:700;letter-spacing:0.28em;text-transform:uppercase;color:var(--rose);margin-bottom:1rem;display:flex;align-items:center;gap:8px;">Chapter Seven<div style="flex:1;height:1px;background:var(--blush);"></div></div>
+          <div class="ch-header pink" data-num="7"><div class="ch-lbl">The Outer Shell</div><div class="ch-title">Exterior Photography<br>Workflow</div></div>
+          <div class="sec-h">Front Elevation Strategy</div>
+          <p class="body">Walk the entire street frontage before setting up. The hero angle for most properties is <strong>30–45° off centre</strong> — slightly left or right creates perspective and dimension that a dead-centre shot never achieves. Use <strong>24mm on full-frame</strong> as the professional standard for residential facades.</p>
+          <div class="sec-h">Pool Photography</div>
+          <div class="pro-tip"><div class="pro-tip-icon">🏊</div><p><strong>CPL Filter is Non-Negotiable for Pools.</strong> A circular polariser eliminates surface glare that makes water appear opaque. Without it: flat white reflections. With it: transparent blue depth showing the pool bottom. Rotate the filter until reflections disappear. This single filter change transforms every pool photo you take.</p></div>
+          <div class="sec-h">Twilight Exterior Checklist</div>
+          <ul class="cklist">
+            <li>Arrive 45–60 min before sunset — lock composition before sky turns</li>
+            <li>Turn on every interior light in the house — ceiling, sconces, all practicals</li>
+            <li>Set WB to 3200K — interior glows amber, sky becomes rich blue</li>
+            <li>Best images: 15–25 min after sunset — shoot continuously</li>
+            <li>Use mirror lockup and remote shutter — 3–8 sec exposures need zero vibration</li>
+          </ul>
+          <div class="pg-footer"><span>Chapter 7 · Exterior Photography Workflow</span><span>43</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEAF 7 — Front: Ch8 Composition | Back: Ch9 Advanced -->
+    <div class="leaf" id="leaf-7" data-index="7">
+      <div class="leaf-front">
+        <div class="pg pg-content right-pg">
+          <div style="font-size:0.55rem;font-weight:700;letter-spacing:0.28em;text-transform:uppercase;color:var(--rose);margin-bottom:1rem;display:flex;align-items:center;gap:8px;">Chapter Eight<div style="flex:1;height:1px;background:var(--blush);"></div></div>
+          <div class="ch-header blue" data-num="8"><div class="ch-lbl">Visual Mastery</div><div class="ch-title">Composition<br>Masterclass</div></div>
+          <div class="sec-h">6 Tools for Depth Creation</div>
+          <div class="card-grid">
+            <div class="card"><span class="tag blue">Tool 1</span><h5>Scale Comparison</h5><p>Objects of known size (chairs, doors) appearing at different distances create instant depth reference.</p></div>
+            <div class="card"><span class="tag pink">Tool 2</span><h5>Converging Lines</h5><p>Floor boards, ceiling beams, baseboard lines converging toward the distance — strongest depth signal.</p></div>
+            <div class="card"><span class="tag gold">Tool 3</span><h5>Overlapping Elements</h5><p>When a near object partially covers a far object, depth is immediately perceived. Chair arm over sofa.</p></div>
+            <div class="card"><span class="tag sage">Tool 4</span><h5>Light Falloff</h5><p>Natural vignetting in corners draws the eye inward and creates the sensation of entering the space.</p></div>
+          </div>
+          <div class="pq"><p>"Minimalist framing asks: what is the single most important element of this space, and how do I let it breathe? This is the compositional philosophy that defines luxury photography."</p></div>
+          <div class="sec-h">The Centering Test</div>
+          <p class="body">Before every symmetrical shot: draw an imaginary vertical line down the centre. Every element on the left should have a visual counterpart on the right. Either <strong>perfectly symmetrical</strong> or <strong>deliberately asymmetrical</strong> — never accidentally unbalanced.</p>
+          <div class="pg-footer"><span>Chapter 8 · Composition Masterclass</span><span>47</span></div>
+        </div>
+      </div>
+      <div class="leaf-back">
+        <div class="pg pg-content">
+          <div style="font-size:0.55rem;font-weight:700;letter-spacing:0.28em;text-transform:uppercase;color:var(--rose);margin-bottom:1rem;display:flex;align-items:center;gap:8px;">Chapter Nine<div style="flex:1;height:1px;background:var(--blush);"></div></div>
+          <div class="ch-header pink" data-num="9"><div class="ch-lbl">The Professional Edge</div><div class="ch-title">Advanced Techniques</div></div>
+          <div class="sec-h">Flambient Workflow</div>
+          <div class="two-col">
+            <div class="box blue"><h5>Exposure 1 — Ambient</h5><p>No flash. Expose for room interior. Windows will blow out — correct. ISO 100, f/8, shutter as needed.</p></div>
+            <div class="box gold"><h5>Exposure 2 — Flash</h5><p>Add ceiling-bounce flash. Underexpose ambient -1.5 EV by raising shutter speed. Flash fills dark areas cleanly.</p></div>
+          </div>
+          <div class="pro-tip"><div class="pro-tip-icon">⚡</div><p><strong>Luminosity Blend Mode Secret:</strong> Set flash layer to <strong>Luminosity</strong> in Photoshop — not Normal. This blends only brightness values, not colour, preserving the room's warm ambient tone while flash adds only its light. The difference between a result that looks natural and one that looks processed.</p></div>
+          <div class="sec-h">Technique Comparison</div>
+          <table class="mini-table"><thead><tr><th>Method</th><th>Best For</th><th>Quality</th></tr></thead><tbody>
+            <tr><td class="v">Auto HDR</td><td>Fast volume work, budget listings</td><td>Good — visible tone-mapping</td></tr>
+            <tr><td class="v">Manual Blend</td><td>All professional work</td><td>Excellent — natural results</td></tr>
+            <tr><td class="v">Flambient</td><td>Luxury and mid-market</td><td>Superior — cleanest shadows</td></tr>
+            <tr><td class="v">Window Pull</td><td>Properties with premium views</td><td>Best — maximum quality</td></tr>
+          </tbody></table>
+          <div class="pg-footer"><span>Chapter 9 · Advanced Techniques</span><span>51</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEAF 8 — Front: Ch10 Problems | Back: Ch10 Diagrams -->
+    <div class="leaf" id="leaf-8" data-index="8">
+      <div class="leaf-front">
+        <div class="pg pg-content right-pg">
+          <div style="font-size:0.55rem;font-weight:700;letter-spacing:0.28em;text-transform:uppercase;color:var(--rose);margin-bottom:1rem;display:flex;align-items:center;gap:8px;">Chapter Ten<div style="flex:1;height:1px;background:var(--blush);"></div></div>
+          <div class="ch-header gold" data-num="10"><div class="ch-lbl">Field Troubleshooting</div><div class="ch-title">Common Problems<br>&amp; Solutions</div></div>
+          <div class="sec-h">Mixed Lighting Fix</div>
+          <p class="body">The professional nuclear option when lighting is unmanageable: <strong>turn off every artificial light and shoot purely natural-light brackets.</strong> Eliminates all colour-temperature conflicts instantly. Use flash to replace missing fill.</p>
+          <div class="sec-h">Colour Cast Diagnosis</div>
+          <table class="mini-table"><thead><tr><th>Cast</th><th>Cause</th><th>Lightroom Fix</th></tr></thead><tbody>
+            <tr><td class="v">Orange</td><td>Tungsten bulbs</td><td>Reduce Temp, HSL: reduce Orange/Yellow</td></tr>
+            <tr><td class="v">Green</td><td>Fluorescent tubes</td><td>WB Tint → Magenta; HSL: reduce Green</td></tr>
+            <tr><td class="v">Blue</td><td>North windows, shade</td><td>Increase Temp; add slight Magenta tint</td></tr>
+            <tr><td class="v">Magenta</td><td>LED strips, some CFLs</td><td>WB Tint → Green; reduce Magenta HSL</td></tr>
+          </tbody></table>
+          <div class="sec-h">Window Overexposure Recovery</div>
+          <div class="three-col">
+            <div class="box blue"><h5>Prevention</h5><p>Always bias bracket toward underexposure. If window still blows at -4 EV, go to -6.</p></div>
+            <div class="box gold"><h5>Lightroom HDR</h5><p>Merge 5-frame bracket. Auto Settings off. Deghost Medium. Process merged DNG.</p></div>
+            <div class="box pink"><h5>Window Pull</h5><p>Separate -3 EV exposure masked in Photoshop. Highest quality for premium views.</p></div>
+          </div>
+          <div class="pg-footer"><span>Chapter 10 · Common Problems & Solutions</span><span>57</span></div>
+        </div>
+      </div>
+      <div class="leaf-back">
+        <div class="pg pg-content">
+          <div class="sec-h">Vertical Line Correction Workflow</div>
+          <!-- Keystoning diagram simplified -->
+          <div class="diag">
+            <svg viewBox="0 0 590 200" xmlns="http://www.w3.org/2000/svg">
+              <rect width="590" height="200" fill="#FAF7F2"/>
+              <!-- Problem: converging lines -->
+              <text x="130" y="18" font-family="Jost" font-size="9" fill="#C85050" text-anchor="middle" font-weight="600">✗ Camera Tilted — Keystoning</text>
+              <polygon points="30,185 105,30 205,30 280,185" fill="#FEF5F5" stroke="#E8C0C0" stroke-width="1.5"/>
+              <line x1="105" y1="30" x2="30"  y2="185" stroke="#C85050" stroke-width="1.2"/>
+              <line x1="205" y1="30" x2="280" y2="185" stroke="#C85050" stroke-width="1.2"/>
+              <line x1="130" y1="32" x2="60"  y2="183" stroke="#E8A090" stroke-width="0.8" stroke-dasharray="3,2"/>
+              <line x1="180" y1="32" x2="250" y2="183" stroke="#E8A090" stroke-width="0.8" stroke-dasharray="3,2"/>
+              <rect x="130" y="30" width="100" height="60" rx="2" fill="none" stroke="#C85050" stroke-width="0.8" stroke-dasharray="4,2"/>
+              <text x="180" y="68" font-family="Jost" font-size="8" fill="#C85050" text-anchor="middle">Converging!</text>
+              <circle cx="155" cy="192" r="7" fill="#FDE8E8" stroke="#C85050" stroke-width="1"/>
+              <text x="155" y="196" font-family="Jost" font-size="7" fill="#C85050" text-anchor="middle">↑</text>
+
+              <!-- Divider -->
+              <line x1="310" y1="10" x2="310" y2="195" stroke="#E8D8C8" stroke-width="1"/>
+
+              <!-- Correct: parallel -->
+              <text x="450" y="18" font-family="Jost" font-size="9" fill="#6A9A62" text-anchor="middle" font-weight="600">✓ Camera Level — Parallel</text>
+              <rect x="330" y="30" width="240" height="155" rx="2" fill="#F4FAF2" stroke="#C8D8C0" stroke-width="1.5"/>
+              <line x1="380" y1="30" x2="380" y2="185" stroke="#6A9A62" stroke-width="1.2"/>
+              <line x1="430" y1="30" x2="430" y2="185" stroke="#6A9A62" stroke-width="1"/>
+              <line x1="480" y1="30" x2="480" y2="185" stroke="#6A9A62" stroke-width="1"/>
+              <line x1="530" y1="30" x2="530" y2="185" stroke="#6A9A62" stroke-width="1.2"/>
+              <rect x="420" y="80" width="60" height="105" rx="2" fill="none" stroke="#6A9A62" stroke-width="0.8" stroke-dasharray="4,2"/>
+              <text x="450" y="138" font-family="Jost" font-size="8" fill="#6A9A62" text-anchor="middle">Straight ✓</text>
+              <circle cx="450" cy="193" r="7" fill="#ECF3EA" stroke="#6A9A62" stroke-width="1"/>
+              <rect x="440" y="190" width="20" height="5" rx="2" fill="#C8D8C0"/>
+              <circle cx="450" cy="193" r="2.5" fill="#6A9A62"/>
+            </svg>
+            <div class="diag-cap"><span>Keystoning vs corrected verticals — enable electronic level always</span><span class="diag-tag">Diagram</span></div>
+          </div>
+          <div class="sec-h">Fast Turnaround Speed Protocol</div>
+          <table class="mini-table"><thead><tr><th>Window</th><th>Shoot Method</th><th>Images</th></tr></thead><tbody>
+            <tr><td class="v">4 hrs</td><td>Flash-ambient single + 3-bracket key shots</td><td>20–30</td></tr>
+            <tr><td class="v">Same day</td><td>3-frame brackets; flash-ambient for speed rooms</td><td>30–45</td></tr>
+            <tr><td class="v">24 hrs</td><td>5-frame brackets; flash-ambient hero rooms</td><td>40–60</td></tr>
+            <tr><td class="v">48–72 hrs</td><td>7–9 frame; window pulls; drone; twilight</td><td>60–80+</td></tr>
+          </tbody></table>
+          <div class="pg-footer"><span>Chapter 10 · Common Problems & Solutions</span><span>60</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEAF 9 — Front: Bonus Pack | Back: Closing -->
+    <div class="leaf" id="leaf-9" data-index="9">
+      <div class="leaf-front">
+        <div class="pg">
+          <div style="background:linear-gradient(145deg,#C8DDEF 0%,#EDD0DA 40%,#F5ECD4 100%);height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:3rem;position:relative;overflow:hidden;">
+            <div style="position:absolute;top:-50px;right:-50px;width:220px;height:220px;background:rgba(255,255,255,0.2);border-radius:50%;"></div>
+            <div style="position:absolute;bottom:-60px;left:-40px;width:180px;height:180px;background:rgba(255,255,255,0.15);border-radius:50%;"></div>
+            <div style="position:relative;z-index:2;">
+              <div style="display:inline-block;background:rgba(255,255,255,0.55);border:1px solid rgba(255,255,255,0.8);color:var(--text-mid);font-size:0.55rem;font-weight:700;letter-spacing:0.28em;text-transform:uppercase;padding:0.35rem 1.1rem;border-radius:20px;margin-bottom:1.8rem;">Exclusive Bonus Content</div>
+              <div style="width:40px;height:2px;background:var(--gold);border-radius:2px;margin:0 auto 1.5rem;"></div>
+              <div style="font-family:'Cormorant Garamond',serif;font-size:2.4rem;font-weight:300;color:var(--text-dark);line-height:1.1;margin-bottom:0.7rem;">Room-by-Room<br><em style="font-style:italic;color:var(--gold);">Workflow Templates</em></div>
+              <p style="font-size:0.72rem;font-weight:300;color:var(--text-mid);max-width:340px;margin:0 auto 2rem;line-height:1.7;">Six professional quick-reference pages. Camera settings, floor plans, lighting techniques, styling checklists, and realtor delivery tips — one page per room. Print and bring to every shoot.</p>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.8rem;max-width:380px;margin:0 auto;">
+                <div style="background:rgba(255,255,255,0.55);border-radius:8px;padding:0.8rem;"><div style="font-size:1.2rem;margin-bottom:0.2rem;">🍳</div><div style="font-family:'Cormorant Garamond',serif;font-size:0.8rem;font-weight:500;color:var(--text-dark);">Kitchen</div></div>
+                <div style="background:rgba(255,255,255,0.55);border-radius:8px;padding:0.8rem;"><div style="font-size:1.2rem;margin-bottom:0.2rem;">🛋️</div><div style="font-family:'Cormorant Garamond',serif;font-size:0.8rem;font-weight:500;color:var(--text-dark);">Living Room</div></div>
+                <div style="background:rgba(255,255,255,0.55);border-radius:8px;padding:0.8rem;"><div style="font-size:1.2rem;margin-bottom:0.2rem;">🕯️</div><div style="font-family:'Cormorant Garamond',serif;font-size:0.8rem;font-weight:500;color:var(--text-dark);">Dining Room</div></div>
+                <div style="background:rgba(255,255,255,0.55);border-radius:8px;padding:0.8rem;"><div style="font-size:1.2rem;margin-bottom:0.2rem;">🛏️</div><div style="font-family:'Cormorant Garamond',serif;font-size:0.8rem;font-weight:500;color:var(--text-dark);">Master Bed</div></div>
+                <div style="background:rgba(255,255,255,0.55);border-radius:8px;padding:0.8rem;"><div style="font-size:1.2rem;margin-bottom:0.2rem;">🌿</div><div style="font-family:'Cormorant Garamond',serif;font-size:0.8rem;font-weight:500;color:var(--text-dark);">Laundry</div></div>
+                <div style="background:rgba(255,255,255,0.55);border-radius:8px;padding:0.8rem;"><div style="font-size:1.2rem;margin-bottom:0.2rem;">🛁</div><div style="font-family:'Cormorant Garamond',serif;font-size:0.8rem;font-weight:500;color:var(--text-dark);">Bathroom</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="leaf-back">
+        <!-- Final / closing page -->
+        <div class="pg pg-right-cover">
+          <div style="width:40px;height:2px;background:var(--gold);border-radius:2px;margin:0 auto 2rem;"></div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:0.65rem;font-weight:400;letter-spacing:0.35em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:1.5rem;">Complete Edition · First Edition 2025</div>
+          <h2 style="font-size:2.2rem;margin-bottom:1.2rem;">Luxury Real Estate<br><em style="font-style:italic;color:var(--gold);">Photography</em></h2>
+          <p style="margin-bottom:2rem;">10 chapters. 88 pages. The complete professional system for capturing, editing and delivering luxury real estate photography that commands premium rates.</p>
+          <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-bottom:2.5rem;">
+            <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:0.7rem 1.2rem;text-align:center;min-width:100px;"><div style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:300;color:white;">10</div><div style="font-size:0.6rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-top:0.2rem;">Chapters</div></div>
+            <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:0.7rem 1.2rem;text-align:center;min-width:100px;"><div style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:300;color:white;">88</div><div style="font-size:0.6rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-top:0.2rem;">Pages</div></div>
+            <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:0.7rem 1.2rem;text-align:center;min-width:100px;"><div style="font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:300;color:white;">6</div><div style="font-size:0.6rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-top:0.2rem;">Bonus Templates</div></div>
+          </div>
+          <div style="width:40px;height:1px;background:rgba(255,255,255,0.2);margin:0 auto 1.5rem;"></div>
+          <div style="font-size:0.62rem;letter-spacing:0.28em;text-transform:uppercase;color:rgba(255,255,255,0.3);">Shoot · Edit · Deliver · Stand Out</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /book -->
+  </div><!-- /book-wrap -->
+</div><!-- /stage -->
+
+<!-- ══════════════════════ PROGRESS ══════════════════════ -->
+<div id="progress">
+  <div id="progress-bar"><div id="progress-fill" style="width:10%;"></div></div>
+  <div id="progress-label">Spread 1 of 10</div>
+</div>
+
+<!-- ══════════════════════ THUMB STRIP ══════════════════════ -->
+<div id="thumb-strip"></div>
+
+<!-- ══════════════════════ FLIP HINT ══════════════════════ -->
+<div id="flip-hint">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polyline points="9 6 15 12 9 18"/></svg>
+  Click right page or press → to flip
+</div>
+
+<!-- ══════════════════════ TOC OVERLAY ══════════════════════ -->
+<div id="toc-overlay" onclick="closeTOC()">
+  <div id="toc-panel" onclick="event.stopPropagation()">
+    <button id="toc-close" onclick="closeTOC()">✕</button>
+    <div class="toc-head">Table of Contents</div>
+    <div id="toc-content"></div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   FLIPBOOK ENGINE
+   ══════════════════════════════════════════════════════ */
+const TOTAL_LEAVES = 10; // leaves 0–9
+let currentLeaf = -1; // -1 = no leaf flipped (showing cover only)
+let isAnimating  = false;
+
+// Spread metadata for UI
+const spreads = [
+  { title: 'Cover',                    pages: '1',     leaf: -1 },
+  { title: 'Table of Contents',        pages: '2–3',   leaf: 0  },
+  { title: 'Introduction',             pages: '4–5',   leaf: 1  },
+  { title: 'Chapter 1 — Gear Guide',   pages: '8–10',  leaf: 2  },
+  { title: 'Chapter 2 — Camera Setup', pages: '16–18', leaf: 3  },
+  { title: 'Chapter 3 — Lighting',     pages: '22–25', leaf: 4  },
+  { title: 'Chapter 4 & 5 — Prep & Planning', pages: '29–35', leaf: 5 },
+  { title: 'Chapter 6 & 7 — Interior & Exterior', pages: '38–45', leaf: 6 },
+  { title: 'Chapter 8 & 9 — Composition & Advanced', pages: '47–55', leaf: 7 },
+  { title: 'Chapter 10 — Problems & Solutions', pages: '57–62', leaf: 8 },
+  { title: 'Bonus Pack & Close',       pages: '65+',   leaf: 9  },
+];
+
+// The total visual spreads is totalLeaves + 1 (cover is spread 0)
+const TOTAL_SPREADS = TOTAL_LEAVES + 1; // 11
+
+function getCurrentSpreadIndex() {
+  return currentLeaf + 1; // -1 maps to 0 (cover), 0 maps to 1, etc.
+}
+
+function updateUI() {
+  const si = getCurrentSpreadIndex();
+  // Page count
+  document.getElementById('pagecount').textContent = `Spread ${si + 1} of ${TOTAL_SPREADS}`;
+  // Progress
+  const pct = ((si) / (TOTAL_SPREADS - 1)) * 100;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = `Spread ${si + 1} of ${TOTAL_SPREADS}`;
+  // Thumbs
+  document.querySelectorAll('.thumb').forEach((t, i) => {
+    t.classList.toggle('active', i === si);
+  });
+  // Arrows
+  document.getElementById('nav-prev').classList.toggle('disabled', si === 0);
+  document.getElementById('nav-next').classList.toggle('disabled', si === TOTAL_SPREADS - 1);
+}
+
+/* Set z-indices so that:
+   - Leaves 0..currentLeaf are flipped (left side), with 0 on bottom
+   - Leaves currentLeaf+1..N-1 are unflipped (right side), with N-1 on top */
+function refreshZIndices() {
+  for (let i = 0; i < TOTAL_LEAVES; i++) {
+    const leaf = document.getElementById('leaf-' + i);
+    if (i <= currentLeaf) {
+      // Flipped to left — lower z on older, higher on newer
+      leaf.style.zIndex = 10 + i;
+    } else {
+      // Unflipped stack on right — higher z on lower index (top of stack is next to flip)
+      leaf.style.zIndex = 10 + (TOTAL_LEAVES - 1 - i);
+    }
+  }
+}
+
+function flipNext() {
+  if (isAnimating) return;
+  const nextLeaf = currentLeaf + 1;
+  if (nextLeaf >= TOTAL_LEAVES) return;
+
+  isAnimating = true;
+  const leaf = document.getElementById('leaf-' + nextLeaf);
+
+  // Set this leaf's z-index to highest during animation
+  leaf.style.zIndex = 999;
+  leaf.classList.add('flipping');
+  leaf.classList.add('flipped');
+
+  setTimeout(() => {
+    currentLeaf = nextLeaf;
+    leaf.classList.remove('flipping');
+    refreshZIndices();
+    isAnimating = false;
+    updateUI();
+    hideFlipHint();
+  }, 750);
+}
+
+function flipPrev() {
+  if (isAnimating) return;
+  if (currentLeaf < 0) return;
+
+  isAnimating = true;
+  const leaf = document.getElementById('leaf-' + currentLeaf);
+
+  leaf.style.zIndex = 999;
+  leaf.classList.add('flipping');
+  leaf.classList.remove('flipped');
+
+  setTimeout(() => {
+    currentLeaf = currentLeaf - 1;
+    leaf.classList.remove('flipping');
+    refreshZIndices();
+    isAnimating = false;
+    updateUI();
+  }, 750);
+}
+
+/* Click zones on book */
+document.getElementById('book').addEventListener('click', function(e) {
+  const rect = this.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const relX = x / rect.width;
+  if (relX > 0.5) flipNext();
+  else flipPrev();
+});
+
+/* Keyboard navigation */
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') flipNext();
+  else if (e.key === 'ArrowLeft') flipPrev();
+  else if (e.key === 't' || e.key === 'T') openTOC();
+  else if (e.key === 'Escape') closeTOC();
+  else if (e.key === 'f' || e.key === 'F') toggleFS();
+});
+
+/* Touch swipe support */
+let touchStartX = 0;
+document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; });
+document.addEventListener('touchend',   e => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(dx) > 50) { if (dx < 0) flipNext(); else flipPrev(); }
+});
+
+/* ══════════════════════════════════════════════════════
+   TOC
+   ══════════════════════════════════════════════════════ */
+function buildTOC() {
+  const container = document.getElementById('toc-content');
+  const tocData = [
+    { num:'Cover',      title:'Cover & Title Page',                    pg:'1',  leaf:-1 },
+    { num:'TOC',        title:'Table of Contents',                     pg:'2',  leaf:0  },
+    { num:'Intro',      title:'Introduction to Real Estate Photography',pg:'4',  leaf:1  },
+    { num:'Chapter 01', title:'Essential Gear Guide',                  pg:'8',  leaf:2  },
+    { num:'Chapter 02', title:'Camera Setup & Core Settings',          pg:'16', leaf:3  },
+    { num:'Chapter 03', title:'Lighting Fundamentals',                 pg:'22', leaf:4  },
+    { num:'Chapter 04', title:'Property Preparation Workflow',         pg:'29', leaf:5  },
+    { num:'Chapter 05', title:'Pre-Shoot Planning',                    pg:'33', leaf:5  },
+    { num:'Chapter 06', title:'Interior Photography Workflow',         pg:'38', leaf:6  },
+    { num:'Chapter 07', title:'Exterior Photography Workflow',         pg:'43', leaf:6  },
+    { num:'Chapter 08', title:'Composition Masterclass',               pg:'47', leaf:7  },
+    { num:'Chapter 09', title:'Advanced Techniques',                   pg:'51', leaf:7  },
+    { num:'Chapter 10', title:'Common Problems & Solutions',           pg:'57', leaf:8  },
+    { num:'Bonus',      title:'Room Workflow Templates',               pg:'65', leaf:9  },
+  ];
+  container.innerHTML = tocData.map(item => `
+    <div class="toc-item-row" onclick="goToLeaf(${item.leaf}); closeTOC();">
+      <span class="ti-num">${item.num}</span>
+      <span class="ti-title">${item.title}</span>
+      <span class="ti-pg">${item.pg}</span>
+    </div>
+  `).join('<div class="toc-sep"></div>');
+}
+
+function openTOC()  { document.getElementById('toc-overlay').classList.add('open'); }
+function closeTOC() { document.getElementById('toc-overlay').classList.remove('open'); }
+
+function goToLeaf(targetLeaf) {
+  if (isAnimating) return;
+  // Instantly jump without animation for TOC navigation
+  const prevLeaf = currentLeaf;
+
+  // Flip or un-flip all leaves between current and target
+  if (targetLeaf > prevLeaf) {
+    for (let i = prevLeaf + 1; i <= targetLeaf; i++) {
+      document.getElementById('leaf-' + i).classList.add('flipped');
+    }
+  } else {
+    for (let i = prevLeaf; i > targetLeaf; i--) {
+      document.getElementById('leaf-' + i).classList.remove('flipped');
+    }
+  }
+  currentLeaf = targetLeaf;
+  refreshZIndices();
+  updateUI();
+}
+
+/* ══════════════════════════════════════════════════════
+   THUMB STRIP
+   ══════════════════════════════════════════════════════ */
+function buildThumbs() {
+  const strip = document.getElementById('thumb-strip');
+  for (let i = 0; i < TOTAL_SPREADS; i++) {
+    const t = document.createElement('div');
+    t.className = 'thumb' + (i === 0 ? ' active' : '');
+    t.title = spreads[i] ? spreads[i].title : 'Spread ' + (i+1);
+    const leafIdx = i - 1; // spread 0 = cover (leaf -1)
+    t.addEventListener('click', () => goToLeaf(leafIdx));
+    strip.appendChild(t);
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   FULL SCREEN
+   ══════════════════════════════════════════════════════ */
+function toggleFS() {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+  else document.exitFullscreen();
+}
+
+/* ══════════════════════════════════════════════════════
+   FLIP HINT — auto-hide
+   ══════════════════════════════════════════════════════ */
+function hideFlipHint() { document.getElementById('flip-hint').classList.add('hidden'); }
+setTimeout(hideFlipHint, 4000);
+
+/* ══════════════════════════════════════════════════════
+   INIT
+   ══════════════════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', () => {
+  refreshZIndices();
+  buildThumbs();
+  buildTOC();
+  updateUI();
+});
+</script>
+</body>
+</html>
